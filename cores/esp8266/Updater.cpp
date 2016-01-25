@@ -195,7 +195,6 @@ bool UpdaterClass::end(bool evenIfRemaining){
     DEBUG_UPDATER.printf("SPIFFS: address:0x%08X, size:0x%08X\n", _startAddress, _size);
 #endif
   }
-
   _reset();
   return true;
 }
@@ -307,6 +306,7 @@ bool UpdaterClass::_verifyEnd() {
 size_t UpdaterClass::writeStream(Stream &data) {
     size_t written = 0;
     size_t toRead = 0;
+    size_t toGet = 0;
     if(hasError() || !isRunning())
         return 0;
 
@@ -319,10 +319,13 @@ size_t UpdaterClass::writeStream(Stream &data) {
     }
 
     while(remaining()) {
-        toRead = data.readBytes(_buffer + _bufferLen,  (FLASH_SECTOR_SIZE - _bufferLen));
+	toGet = (FLASH_SECTOR_SIZE - _bufferLen);
+	if (toGet > remaining()) 
+		toGet = remaining();
+        toRead = data.readBytes(_buffer + _bufferLen,  toGet);
         if(toRead == 0) { //Timeout
             delay(100);
-            toRead = data.readBytes(_buffer + _bufferLen, (FLASH_SECTOR_SIZE - _bufferLen));
+            toRead = data.readBytes(_buffer + _bufferLen, toGet);
             if(toRead == 0) { //Timeout
                 _error = UPDATE_ERROR_STREAM;
                 _currentAddress = (_startAddress + _size);
